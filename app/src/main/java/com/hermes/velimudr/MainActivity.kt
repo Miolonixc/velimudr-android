@@ -357,6 +357,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        try { tunnel?.let { backend?.setState(it, Tunnel.State.DOWN, null) } } catch (_: Exception) {}
+        try {
+            val t = tunnel
+            if (t != null) backend?.setState(t, Tunnel.State.DOWN, null)
+        } catch (_: Exception) {}
     }
 }
