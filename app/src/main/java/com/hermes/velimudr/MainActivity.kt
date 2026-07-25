@@ -3,6 +3,8 @@ package com.hermes.velimudr
 import android.app.Activity
 import android.content.Intent
 import android.content.SharedPreferences
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.widget.*
@@ -24,6 +26,7 @@ import com.wireguard.android.backend.GoBackend
 import com.wireguard.android.backend.Tunnel
 import com.wireguard.config.Config
 import java.io.BufferedReader
+import java.io.ByteArrayOutputStream
 import java.io.StringReader
 import java.io.File
 import java.lang.Exception
@@ -61,6 +64,7 @@ class MainActivity : AppCompatActivity() {
     private var tunnel: Tunnel? = null
     private var wgConnected: Boolean = false
     private lateinit var prefs: SharedPreferences
+    private var styleIdx = 0
 
     private val PREFS_NAME = "velimudr"
     private val KEY_CONF = "wg_conf"
@@ -91,21 +95,30 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        styleIdx = prefs.getInt("style_idx", 0)
 
-        val styleAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, STYLES)
-        styleAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding.spinnerStyle.adapter = styleAdapter
-
-        // Hub button: tap -> load conf (if none saved) then connect VPN
+        // Hub button: tap -> load conf (if none) then connect VPN
         binding.btnHub.setOnClickListener { onHubTap() }
+        // Style toggle: cycle through styles
+        binding.btnStyle.setOnClickListener { cycleStyle() }
         binding.btnSend.setOnClickListener { sendMessage() }
         binding.btnMic.setOnClickListener { pickAudio() }
         binding.btnPhoto.setOnClickListener { pickPhoto() }
 
-        // Restore saved config state
         if (prefs.contains(KEY_CONF)) {
             binding.tvStatus.text = "Конфиг сохранён. Нажми кружок для VPN"
         }
+        showStyle()
+    }
+
+    private fun cycleStyle() {
+        styleIdx = (styleIdx + 1) % STYLES.size
+        prefs.edit().putInt("style_idx", styleIdx).apply()
+        showStyle()
+    }
+
+    private fun showStyle() {
+        binding.tvStatus.text = "Стиль: ${STYLES[styleIdx]}"
     }
 
     // --- Hub button logic ---
@@ -116,10 +129,8 @@ class MainActivity : AppCompatActivity() {
         }
         val saved = prefs.getString(KEY_CONF, null)
         if (saved.isNullOrEmpty()) {
-            // No saved config -> ask user to pick .conf
             pickConf()
         } else {
-            // Config already saved -> connect VPN directly
             prepareAndConnect()
         }
     }
@@ -144,11 +155,8 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Конфиг невалиден: ${validation.second}", Toast.LENGTH_LONG).show()
                 return@registerForActivityResult
             }
-            // Save config persistently
             prefs.edit().putString(KEY_CONF, text).apply()
-            binding.tvStatus.text = "Конфиг сохранён ✅ (${validation.second})"
             Toast.makeText(this, "Конфиг сохранён", Toast.LENGTH_SHORT).show()
-            // Auto-connect after saving
             prepareAndConnect()
         } catch (e: Exception) {
             Toast.makeText(this, "Ошибка чтения: ${e.message}", Toast.LENGTH_LONG).show()
@@ -190,7 +198,7 @@ class MainActivity : AppCompatActivity() {
                 wgConnected = true
                 withContext(Dispatchers.Main) {
                     setHubBusy(false)
-                    binding.imgCheck.visibility = android.view.View.VISIBLE
+                    binding.dotConnected.visibility = android.view.View.VISIBLE
                     binding.tvStatus.text = "WG: подключен ✅"
                 }
             } catch (e: Exception) {
@@ -208,7 +216,7 @@ class MainActivity : AppCompatActivity() {
                 tunnel?.let { backend?.setState(it, Tunnel.State.DOWN, null) }
                 wgConnected = false
                 withContext(Dispatchers.Main) {
-                    binding.imgCheck.visibility = android.view.View.GONE
+                    binding.dotConnected.visibility = android.view.View.GONE
                     binding.tvStatus.text = "WG: отключен"
                 }
             } catch (e: Exception) {
@@ -231,7 +239,7 @@ class MainActivity : AppCompatActivity() {
         if (text.isEmpty()) return
         binding.tvChat.append("Вы: $text\n")
         binding.etMessage.text.clear()
-        val style = STYLES[binding.spinnerStyle.selectedItemPosition]
+        val style = STYLES[styleIdx]
         val prompt = if (style == "обычный") text else "[Стиль общения: $style]\n\n$text"
         callLlm(prompt, "Velimudr")
     }
@@ -286,7 +294,7 @@ class MainActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "STT ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
+                    binding.tvChat.append("🎤 ошибка: ${e.message}\n\n")
                     setBusy(false)
                 }
             }
@@ -304,9 +312,9 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val input = contentResolver.openInputStream(uri) ?: return@launch
-                val tmp = File.createTempFile("photo", ".jpg", cacheDir)
-                tmp.outputStream().use { input.copyTo(it) }
-                val reqBody = tmp.asRequestBody("image/*".toMediaType())
+                // downscale to <=1024px to stay well under upload limit
+                val bytes = compressImage(input.readBytes())
+                val reqBody = bytes.toRequestBody("image/jpeg".toMediaType())
                 val req = Request.Builder().url(LLM_VISION)
                     .post(MultipartBody.Builder().setType(MultipartBody.FORM)
                         .addFormDataPart("file", "photo.jpg", reqBody).build()).build()
@@ -318,11 +326,23 @@ class MainActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "Vision ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
+                    binding.tvChat.append("🖼️ ошибка: ${e.message}\n\n")
                     setBusy(false)
                 }
             }
         }
+    }
+
+    private fun compressImage(data: ByteArray): ByteArray {
+        val bmp = BitmapFactory.decodeByteArray(data, 0, data.size) ?: return data
+        val max = 1024
+        val scale = minOf(1.0, max.toFloat() / maxOf(bmp.width, bmp.height))
+        val w = (bmp.width * scale).toInt()
+        val h = (bmp.height * scale).toInt()
+        val out = Bitmap.createScaledBitmap(bmp, w, h, true)
+        val stream = ByteArrayOutputStream()
+        out.compress(Bitmap.CompressFormat.JPEG, 80, stream)
+        return stream.toByteArray()
     }
 
     private fun pickPhoto() {
@@ -330,8 +350,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun quote(s: String): String {
-        val esc = s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
-            .replace("\r", "\\r").replace("\t", "\\t")
+        val esc = s.replace("\\", "\\\\").replace("\"", "\\\"")
+            .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
         return "\"$esc\""
     }
 
