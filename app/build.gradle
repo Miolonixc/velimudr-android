@@ -44,7 +44,7 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 
     // WireGuard tunnel library (embedded VPN client)
-    implementation 'com.wireguard.android:tunnel:1.0.20231018'
+    implementation 'com.wireguard.android:tunnel:1.0.20260102'
 
     // Networking
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
