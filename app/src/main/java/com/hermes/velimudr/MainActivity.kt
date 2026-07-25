@@ -338,7 +338,9 @@ class MainActivity : AppCompatActivity() {
     private fun compressImage(data: ByteArray): ByteArray {
         val bmp = BitmapFactory.decodeByteArray(data, 0, data.size) ?: return data
         val max = 1024
-        val scale = minOf(1.0, max.toFloat() / maxOf(bmp.width, bmp.height))
+        val bw = bmp.width.toFloat()
+        val bh = bmp.height.toFloat()
+        val scale = minOf(1.0f, max.toFloat() / maxOf(bw, bh))
         val w = (bmp.width * scale).toInt()
         val h = (bmp.height * scale).toInt()
         val out = Bitmap.createScaledBitmap(bmp, w, h, true)
