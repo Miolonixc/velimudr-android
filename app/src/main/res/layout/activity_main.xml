@@ -1,87 +1,127 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="?android:colorBackground">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-        <Button
-            android:id="@+id/btnConnect"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="🔌 VPN" />
-        <Button
-            android:id="@+id/btnLoadConf"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="📁 .conf" />
-    </LinearLayout>
-
-    <TextView
-        android:id="@+id/tvStatus"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="WG: не подключен"
-        android:textSize="12sp"
-        android:textColor="#666" />
-
+    <!-- Top row: VPN + load conf -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center_vertical">
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Стиль:"
-            android:textSize="14sp" />
-        <Spinner
-            android:id="@+id/spinnerStyle"
+        android:gap="12dp">
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnConnect"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:text="🔌 VPN"
+            style="@style/Widget.Material3.Button" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLoadConf"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📁 .conf"
+            style="@style/Widget.Material3.Button.OutlinedButton" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/tvChat"
+    <!-- Status chip -->
+    <com.google.android.material.chip.Chip
+        android:id="@+id/tvStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="WG: не подключен"
+        app:chipCornerRadius="12dp"
+        app:chipBackgroundColor="@color/brand_surface" />
+
+    <!-- Style selector -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="2dp"
+        app:strokeColor="@color/brand_outline"
+        app:strokeWidth="1dp">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="12dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Стиль:"
+                android:textSize="15sp" />
+            <Spinner
+                android:id="@+id/spinnerStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Chat area -->
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:scrollbars="vertical"
-        android:background="#F5F5F5"
-        android:padding="8dp"
-        android:textSize="14sp" />
+        android:layout_marginTop="12dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="2dp">
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+            <TextView
+                android:id="@+id/tvChat"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="12dp"
+                android:textSize="14sp"
+                android:textIsSelectable="true" />
+        </ScrollView>
+    </com.google.android.material.card.MaterialCardView>
 
+    <!-- Input row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:layout_marginTop="12dp"
+        android:gravity="center_vertical">
         <EditText
             android:id="@+id/etMessage"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:hint="Сообщение Велимудру..."
-            android:inputType="text" />
-        <Button
+            android:inputType="text"
+            android:background="@null" />
+        <ImageButton
             android:id="@+id/btnMic"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="🎤" />
-        <Button
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@android:drawable/ic_btn_speak_now"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Голос" />
+        <ImageButton
             android:id="@+id/btnPhoto"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="🖼️" />
-        <Button
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@android:drawable/ic_menu_gallery"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Фото" />
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSend"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="➤" />
+            android:text="➤"
+            style="@style/Widget.Material3.Button" />
     </LinearLayout>
 </LinearLayout>

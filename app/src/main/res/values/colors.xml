@@ -3,7 +3,14 @@
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Brand palette (modern Android) -->
+    <color name="brand_purple">#7C4DFF</color>
+    <color name="brand_purple_dark">#4A23C9</color>
+    <color name="brand_purple_light">#B39DFF</color>
+    <color name="brand_bg">#F6F5FB</color>
+    <color name="brand_surface">#FFFFFF</color>
+    <color name="brand_outline">#E0E0EA</color>
 </resources>

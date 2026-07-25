@@ -26,16 +26,37 @@ import java.io.BufferedReader
 import java.io.StringReader
 import java.io.File
 import java.lang.Exception
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 class WgTunnel(private val tunnelName: String) : Tunnel {
     override fun getName(): String = tunnelName
     override fun onStateChange(newState: Tunnel.State) {}
 }
 
+// OkHttpClient that trusts self-signed certs (homelab VPN *.srv.local)
+fun trustAllClient(): OkHttpClient {
+    val trustAll = arrayOf<X509TrustManager>(object : X509TrustManager {
+        override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+        override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+        override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+    })
+    val ssl = SSLContext.getInstance("SSL").apply {
+        init(null, trustAll as TrustManager, SecureRandom())
+    }
+    return OkHttpClient.Builder()
+        .sslSocketFactory(ssl.socketFactory, trustAll[0])
+        .hostnameVerifier { _, _ -> true }
+        .build()
+}
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private val client = OkHttpClient()
+    private val client = trustAllClient()
     private var backend: Backend? = null
     private var tunnel: Tunnel? = null
     private var wgConf: String? = null

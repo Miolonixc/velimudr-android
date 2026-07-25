@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+  <!-- Velimudr emblem: stylized "В" monogram in a circle, on transparent bg -->
+  <group android:translateX="54" android:translateY="54">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M -26,30 L -26,-28 L -10,-28 L -10,8 L 10,8 L 10,-28 L 26,-28 L 26,30 L 10,30 L 10,2 L -10,2 L -10,30 Z"/>
+    <circle android:cx="0" android:cy="0" android:r="46"
+        android:strokeColor="#7C4DFF" android:strokeWidth="3" android:fillColor="#00000000"/>
+  </group>
+</vector>
