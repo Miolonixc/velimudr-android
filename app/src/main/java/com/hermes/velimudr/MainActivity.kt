@@ -39,16 +39,15 @@ class WgTunnel(private val tunnelName: String) : Tunnel {
 
 // OkHttpClient that trusts self-signed certs (homelab VPN *.srv.local)
 fun trustAllClient(): OkHttpClient {
-    val trustAll = arrayOf<X509TrustManager>(object : X509TrustManager {
-        override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
-        override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+    val trustManager = object : X509TrustManager {
+        override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
+        override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
         override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-    })
-    val ssl = SSLContext.getInstance("SSL").apply {
-        init(null, trustAll as TrustManager, SecureRandom())
     }
+    val sslContext = SSLContext.getInstance("TLS")
+    sslContext.init(null, arrayOf(trustManager), SecureRandom())
     return OkHttpClient.Builder()
-        .sslSocketFactory(ssl.socketFactory, trustAll[0])
+        .sslSocketFactory(sslContext.socketFactory, trustManager)
         .hostnameVerifier { _, _ -> true }
         .build()
 }
