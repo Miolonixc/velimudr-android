@@ -16,6 +16,8 @@ import com.wireguard.android.backend.Backend
 import com.wireguard.android.backend.GoBackend
 import com.wireguard.android.backend.Tunnel
 import com.wireguard.config.Config
+import java.io.BufferedReader
+import java.io.StringReader
 import java.lang.Exception
 
 // Tunnel implementation required by WireGuard backend
@@ -49,7 +51,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 backend = GoBackend(applicationContext)
                 val confText = loadWgConfig()
-                val config = Config.parse(confText)
+                val config = Config.parse(BufferedReader(StringReader(confText)))
                 tunnel = WgTunnel("velimudr-tunnel")
                 // Request VPN permission if needed (Android requirement)
                 val prepareIntent = GoBackend.VpnService.prepare(this@MainActivity)
