@@ -40,6 +40,17 @@ class MainActivity : AppCompatActivity() {
     private var tunnel: Tunnel? = null
     private var wgConf: String? = null
 
+    // VPN permission launcher — actually triggers the system dialog
+    private val vpnPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            doConnectWg()
+        } else {
+            Toast.makeText(this, "Разрешение VPN не предоставлено", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private val LLM_CHAT = "http://llm.srv.local/chat"
     private val LLM_TRANSCRIBE = "http://llm.srv.local/transcribe"
     private val LLM_TTS = "http://llm.srv.local/tts"
@@ -112,19 +123,22 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Сначала загрузи .conf (кнопка 📁)", Toast.LENGTH_LONG).show()
             return
         }
+        // Check if VPN permission is needed, trigger real system dialog
+        val prepareIntent = GoBackend.VpnService.prepare(this)
+        if (prepareIntent != null) {
+            vpnPermissionLauncher.launch(prepareIntent)
+        } else {
+            doConnectWg()
+        }
+    }
+
+    private fun doConnectWg() {
+        val conf = wgConf ?: return
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 backend = GoBackend(applicationContext)
                 val config = Config.parse(BufferedReader(StringReader(conf)))
                 tunnel = WgTunnel("velimudr-tunnel")
-                val prepareIntent = GoBackend.VpnService.prepare(this@MainActivity)
-                if (prepareIntent != null) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(this@MainActivity, "Подтверди VPN в системном диалоге", Toast.LENGTH_LONG).show()
-                    }
-                    // Note: proper flow needs startActivityForResult; simplified here
-                    return@launch
-                }
                 backend!!.setState(tunnel!!, Tunnel.State.UP, config)
                 withContext(Dispatchers.Main) {
                     binding.tvStatus.text = "WG: подключен ✅"
