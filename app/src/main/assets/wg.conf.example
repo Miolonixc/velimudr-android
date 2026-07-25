@@ -1,0 +1,14 @@
+# Шаблон WireGuard-конфига для приложения Velimudr.
+# ЗАМЕНИ значения на свои из wg_client.py (сервер выдаёт .conf для телефона).
+# НЕ КОММИТЬ реальный файл с приватным ключом! Используй wg.conf (в .gitignore).
+
+[Interface]
+PrivateKey = <ТВОЙ_ПРИВАТНЫЙ_КЛЮЧ>
+Address = 10.8.0.2/24
+DNS = 46.224.217.107
+
+[Peer]
+PublicKey = <ПУБЛИЧНЫЙ_КЛЮЧ_СЕРВЕРА>
+Endpoint = 46.224.217.107:51820
+AllowedIPs = 0.0.0.0/0
+PersistentKeepalive = 25

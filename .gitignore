@@ -1,0 +1,12 @@
+# Secrets — never commit real WireGuard keys
+app/src/main/assets/wg.conf
+
+# Build artifacts
+*.apk
+*.aab
+build/
+.gradle/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
