@@ -5,11 +5,47 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <Button
-        android:id="@+id/btnConnect"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="🔌 Подключить VPN (WireGuard)" />
+        android:orientation="horizontal">
+        <Button
+            android:id="@+id/btnConnect"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🔌 VPN" />
+        <Button
+            android:id="@+id/btnLoadConf"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📁 .conf" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="WG: не подключен"
+        android:textSize="12sp"
+        android:textColor="#666" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Стиль:"
+            android:textSize="14sp" />
+        <Spinner
+            android:id="@+id/spinnerStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+    </LinearLayout>
 
     <TextView
         android:id="@+id/tvChat"
@@ -25,7 +61,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
-
         <EditText
             android:id="@+id/etMessage"
             android:layout_width="0dp"
@@ -33,11 +68,20 @@
             android:layout_weight="1"
             android:hint="Сообщение Велимудру..."
             android:inputType="text" />
-
+        <Button
+            android:id="@+id/btnMic"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🎤" />
+        <Button
+            android:id="@+id/btnPhoto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🖼️" />
         <Button
             android:id="@+id/btnSend"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Отправить" />
+            android:text="➤" />
     </LinearLayout>
 </LinearLayout>
