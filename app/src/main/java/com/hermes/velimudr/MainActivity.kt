@@ -12,14 +12,14 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.wireguard.android.backend.Backend
-import org.wireguard.android.backend.GoBackend
-import org.wireguard.android.backend.Tunnel
-import org.wireguard.config.Config
-import org.wireguard.config.InetEndpoint
-import org.wireguard.config.InetNetwork
-import org.wireguard.config.Peer
-import org.wireguard.config.Interface
+import com.wireguard.android.backend.Backend
+import com.wireguard.android.backend.GoBackend
+import com.wireguard.android.backend.Tunnel
+import com.wireguard.config.Config
+import com.wireguard.config.InetEndpoint
+import com.wireguard.config.InetNetwork
+import com.wireguard.config.Peer
+import com.wireguard.config.Interface
 import java.lang.Exception
 
 class MainActivity : AppCompatActivity() {
