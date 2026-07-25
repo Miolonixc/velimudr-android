@@ -59,6 +59,7 @@ class MainActivity : AppCompatActivity() {
     private var backend: Backend? = null
     private var tunnel: Tunnel? = null
     private var wgConf: String? = null
+    private var wgConnected: Boolean = false
 
     // VPN permission launcher — actually triggers the system dialog
     private val vpnPermissionLauncher = registerForActivityResult(
@@ -71,10 +72,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val LLM_CHAT = "http://llm.srv.local/chat"
-    private val LLM_TRANSCRIBE = "http://llm.srv.local/transcribe"
-    private val LLM_TTS = "http://llm.srv.local/tts"
-    private val LLM_VISION = "http://llm.srv.local/vision"
+    private val LLM_CHAT = "https://llm.srv.local/chat"
+    private val LLM_TRANSCRIBE = "https://llm.srv.local/transcribe"
+    private val LLM_TTS = "https://llm.srv.local/tts"
+    private val LLM_VISION = "https://llm.srv.local/vision"
     private val sessionId = "android-" + System.currentTimeMillis()
 
     // Styles list (mirrors bot.py STYLES)
@@ -143,6 +144,10 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Сначала загрузи .conf (кнопка 📁)", Toast.LENGTH_LONG).show()
             return
         }
+        if (wgConnected) {
+            disconnectWg()
+            return
+        }
         // Check if VPN permission is needed, trigger real system dialog
         val prepareIntent = GoBackend.VpnService.prepare(this)
         if (prepareIntent != null) {
@@ -160,13 +165,31 @@ class MainActivity : AppCompatActivity() {
                 val config = Config.parse(BufferedReader(StringReader(conf)))
                 tunnel = WgTunnel("velimudr-tunnel")
                 backend!!.setState(tunnel!!, Tunnel.State.UP, config)
+                wgConnected = true
                 withContext(Dispatchers.Main) {
                     binding.tvStatus.text = "WG: подключен ✅"
-                    binding.btnConnect.isEnabled = false
+                    binding.btnConnect.text = "🔌 Отключить VPN"
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@MainActivity, "Ошибка WG: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun disconnectWg() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                tunnel?.let { backend?.setState(it, Tunnel.State.DOWN, null) }
+                wgConnected = false
+                withContext(Dispatchers.Main) {
+                    binding.tvStatus.text = "WG: отключен"
+                    binding.btnConnect.text = "🔌 VPN"
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Ошибка отключения: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
