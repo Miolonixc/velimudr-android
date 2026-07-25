@@ -21,6 +21,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install SDK packages
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
       - name: Accept SDK licenses
         run: yes | sdkmanager --licenses || true
 
@@ -28,11 +31,22 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: velimudr-apk
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            app/build/reports/
+            ~/.gradle/
+          retention-days: 7
