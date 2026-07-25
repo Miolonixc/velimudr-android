@@ -7,36 +7,55 @@
     android:padding="16dp"
     android:background="?android:colorBackground">
 
-    <!-- Top row: VPN + load conf -->
-    <LinearLayout
+    <!-- Top: big round hub button (tap = load .conf + connect VPN) -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="4dp">
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnConnect"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="🔌 VPN"
-            style="@style/Widget.Material3.Button" />
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnLoadConf"
+        android:gravity="center">
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnHub"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="📁 .conf"
-            style="@style/Widget.Material3.Button.OutlinedButton" />
-    </LinearLayout>
+            android:layout_margin="8dp"
+            app:srcCompat="@android:drawable/ic_input_add"
+            app:backgroundTint="@color/brand_purple"
+            app:tint="@color/white"
+            app:fabCustomSize="88dp"
+            app:maxImageSize="44dp"
+            android:contentDescription="Подключить / настройки" />
 
-    <!-- Status chip -->
-    <com.google.android.material.chip.Chip
+        <!-- green check overlay (shown when VPN up) -->
+        <ImageView
+            android:id="@+id/imgCheck"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="14dp"
+            android:src="@android:drawable/ic_menu_save"
+            android:background="@drawable/bg_check"
+            android:visibility="gone"
+            app:tint="@color/green_ok" />
+
+        <!-- spinning progress (shown while connecting) -->
+        <ProgressBar
+            android:id="@+id/progressHub"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="88dp"
+            android:layout_height="88dp"
+            android:layout_margin="8dp"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <!-- Status text -->
+    <TextView
         android:id="@+id/tvStatus"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="WG: не подключен"
-        app:chipCornerRadius="12dp"
-        app:chipBackgroundColor="@color/brand_surface" />
+        android:layout_marginTop="4dp"
+        android:gravity="center"
+        android:text="Нажми кружок, чтобы подключиться"
+        android:textSize="14sp" />
 
     <!-- Style selector -->
     <com.google.android.material.card.MaterialCardView
@@ -103,6 +122,12 @@
             android:hint="Сообщение Велимудру..."
             android:inputType="text"
             android:background="@null" />
+        <ProgressBar
+            android:id="@+id/progressBusy"
+            style="?android:attr/progressBarStyleSmall"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:visibility="gone" />
         <ImageButton
             android:id="@+id/btnMic"
             android:layout_width="48dp"

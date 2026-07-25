@@ -13,4 +13,5 @@
     <color name="brand_bg">#F6F5FB</color>
     <color name="brand_surface">#FFFFFF</color>
     <color name="brand_outline">#E0E0EA</color>
+    <color name="green_ok">#2E7D32</color>
 </resources>

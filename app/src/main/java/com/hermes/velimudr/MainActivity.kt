@@ -2,6 +2,7 @@ package com.hermes.velimudr
 
 import android.app.Activity
 import android.content.Intent
+import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
 import android.widget.*
@@ -58,10 +59,12 @@ class MainActivity : AppCompatActivity() {
     private val client = trustAllClient()
     private var backend: Backend? = null
     private var tunnel: Tunnel? = null
-    private var wgConf: String? = null
     private var wgConnected: Boolean = false
+    private lateinit var prefs: SharedPreferences
 
-    // VPN permission launcher — actually triggers the system dialog
+    private val PREFS_NAME = "velimudr"
+    private val KEY_CONF = "wg_conf"
+
     private val vpnPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -69,16 +72,15 @@ class MainActivity : AppCompatActivity() {
             doConnectWg()
         } else {
             Toast.makeText(this, "Разрешение VPN не предоставлено", Toast.LENGTH_SHORT).show()
+            setHubBusy(false)
         }
     }
 
     private val LLM_CHAT = "https://llm.srv.local/chat"
     private val LLM_TRANSCRIBE = "https://llm.srv.local/transcribe"
-    private val LLM_TTS = "https://llm.srv.local/tts"
     private val LLM_VISION = "https://llm.srv.local/vision"
     private val sessionId = "android-" + System.currentTimeMillis()
 
-    // Styles list (mirrors bot.py STYLES)
     private val STYLES = arrayOf(
         "обычный", "пацанский", "чиловый", "пиджак", "флирт", "ментор", "киберпанк"
     )
@@ -88,19 +90,51 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Style spinner
+        prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+
         val styleAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, STYLES)
         styleAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.spinnerStyle.adapter = styleAdapter
 
-        binding.btnConnect.setOnClickListener { connectWg() }
-        binding.btnLoadConf.setOnClickListener { pickConf() }
+        // Hub button: tap -> load conf (if none saved) then connect VPN
+        binding.btnHub.setOnClickListener { onHubTap() }
         binding.btnSend.setOnClickListener { sendMessage() }
         binding.btnMic.setOnClickListener { pickAudio() }
         binding.btnPhoto.setOnClickListener { pickPhoto() }
+
+        // Restore saved config state
+        if (prefs.contains(KEY_CONF)) {
+            binding.tvStatus.text = "Конфиг сохранён. Нажми кружок для VPN"
+        }
     }
 
-    // --- WireGuard config loader with validation ---
+    // --- Hub button logic ---
+    private fun onHubTap() {
+        if (wgConnected) {
+            disconnectWg()
+            return
+        }
+        val saved = prefs.getString(KEY_CONF, null)
+        if (saved.isNullOrEmpty()) {
+            // No saved config -> ask user to pick .conf
+            pickConf()
+        } else {
+            // Config already saved -> connect VPN directly
+            prepareAndConnect()
+        }
+    }
+
+    private fun prepareAndConnect() {
+        setHubBusy(true)
+        val prepareIntent = GoBackend.VpnService.prepare(this)
+        if (prepareIntent != null) {
+            vpnPermissionLauncher.launch(prepareIntent)
+        } else {
+            doConnectWg()
+        }
+    }
+
+    // --- WireGuard config loader with validation + persistence ---
     private val confPicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri ?: return@registerForActivityResult
         try {
@@ -110,9 +144,12 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Конфиг невалиден: ${validation.second}", Toast.LENGTH_LONG).show()
                 return@registerForActivityResult
             }
-            wgConf = text
-            binding.tvStatus.text = "WG: конфиг загружен ✅ (${validation.second})"
-            Toast.makeText(this, "Конфиг загружен", Toast.LENGTH_SHORT).show()
+            // Save config persistently
+            prefs.edit().putString(KEY_CONF, text).apply()
+            binding.tvStatus.text = "Конфиг сохранён ✅ (${validation.second})"
+            Toast.makeText(this, "Конфиг сохранён", Toast.LENGTH_SHORT).show()
+            // Auto-connect after saving
+            prepareAndConnect()
         } catch (e: Exception) {
             Toast.makeText(this, "Ошибка чтения: ${e.message}", Toast.LENGTH_LONG).show()
         }
@@ -129,7 +166,6 @@ class MainActivity : AppCompatActivity() {
         if (!text.contains("PublicKey")) return false to "нет PublicKey у Peer"
         if (!text.contains("Endpoint")) return false to "нет Endpoint у Peer"
         if (!text.contains("AllowedIPs")) return false to "нет AllowedIPs"
-        // Try parse via library
         try {
             Config.parse(BufferedReader(StringReader(text)))
         } catch (e: Exception) {
@@ -138,27 +174,13 @@ class MainActivity : AppCompatActivity() {
         return true to "OK"
     }
 
-    private fun connectWg() {
-        val conf = wgConf
-        if (conf == null) {
-            Toast.makeText(this, "Сначала загрузи .conf (кнопка 📁)", Toast.LENGTH_LONG).show()
-            return
-        }
-        if (wgConnected) {
-            disconnectWg()
-            return
-        }
-        // Check if VPN permission is needed, trigger real system dialog
-        val prepareIntent = GoBackend.VpnService.prepare(this)
-        if (prepareIntent != null) {
-            vpnPermissionLauncher.launch(prepareIntent)
-        } else {
-            doConnectWg()
-        }
-    }
-
     private fun doConnectWg() {
-        val conf = wgConf ?: return
+        val conf = prefs.getString(KEY_CONF, null)
+        if (conf == null) {
+            setHubBusy(false)
+            Toast.makeText(this, "Сначала загрузи .conf (кружок)", Toast.LENGTH_LONG).show()
+            return
+        }
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 backend = GoBackend(applicationContext)
@@ -167,11 +189,13 @@ class MainActivity : AppCompatActivity() {
                 backend!!.setState(tunnel!!, Tunnel.State.UP, config)
                 wgConnected = true
                 withContext(Dispatchers.Main) {
+                    setHubBusy(false)
+                    binding.imgCheck.visibility = android.view.View.VISIBLE
                     binding.tvStatus.text = "WG: подключен ✅"
-                    binding.btnConnect.text = "🔌 Отключить VPN"
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
+                    setHubBusy(false)
                     Toast.makeText(this@MainActivity, "Ошибка WG: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
@@ -184,8 +208,8 @@ class MainActivity : AppCompatActivity() {
                 tunnel?.let { backend?.setState(it, Tunnel.State.DOWN, null) }
                 wgConnected = false
                 withContext(Dispatchers.Main) {
+                    binding.imgCheck.visibility = android.view.View.GONE
                     binding.tvStatus.text = "WG: отключен"
-                    binding.btnConnect.text = "🔌 VPN"
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -193,6 +217,12 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun setHubBusy(busy: Boolean) {
+        binding.progressHub.visibility = if (busy) android.view.View.VISIBLE else android.view.View.GONE
+        binding.btnHub.visibility = if (busy) android.view.View.GONE else android.view.View.VISIBLE
+        if (busy) binding.tvStatus.text = "Подключение VPN..."
     }
 
     // --- Chat ---
@@ -207,6 +237,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun callLlm(prompt: String, who: String) {
+        setBusy(true)
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val json = """{"session_id":"$sessionId","message":${quote(prompt)}}"""
@@ -218,16 +249,25 @@ class MainActivity : AppCompatActivity() {
                     .joinToString("") { it.removePrefix("data:").trim() }.ifBlank { raw }
                 withContext(Dispatchers.Main) {
                     binding.tvChat.append("$who: $reply\n\n")
+                    setBusy(false)
                 }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { binding.tvChat.append("Ошибка: ${e.message}\n\n") }
+                withContext(Dispatchers.Main) {
+                    binding.tvChat.append("Ошибка: ${e.message}\n\n")
+                    setBusy(false)
+                }
             }
         }
     }
 
-    // --- Voice (STT + TTS) ---
+    private fun setBusy(b: Boolean) {
+        binding.progressBusy.visibility = if (b) android.view.View.VISIBLE else android.view.View.GONE
+    }
+
+    // --- Voice (STT) ---
     private val audioPicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri ?: return@registerForActivityResult
+        setBusy(true)
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val input = contentResolver.openInputStream(uri) ?: return@launch
@@ -242,9 +282,13 @@ class MainActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     binding.etMessage.setText(text)
                     binding.tvChat.append("🎤: $text\n")
+                    setBusy(false)
                 }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { Toast.makeText(this@MainActivity, "STT ошибка: ${e.message}", Toast.LENGTH_SHORT).show() }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "STT ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
+                    setBusy(false)
+                }
             }
         }
     }
@@ -256,6 +300,7 @@ class MainActivity : AppCompatActivity() {
     // --- Photo (vision) ---
     private val photoPicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri ?: return@registerForActivityResult
+        setBusy(true)
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val input = contentResolver.openInputStream(uri) ?: return@launch
@@ -269,9 +314,13 @@ class MainActivity : AppCompatActivity() {
                 val desc = resp.body?.string() ?: ""
                 withContext(Dispatchers.Main) {
                     binding.tvChat.append("🖼️: $desc\n\n")
+                    setBusy(false)
                 }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { Toast.makeText(this@MainActivity, "Vision ошибка: ${e.message}", Toast.LENGTH_SHORT).show() }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Vision ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
+                    setBusy(false)
+                }
             }
         }
     }
@@ -281,7 +330,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun quote(s: String): String {
-        val esc = s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+        val esc = s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
+            .replace("\r", "\\r").replace("\t", "\\t")
         return "\"$esc\""
     }
 

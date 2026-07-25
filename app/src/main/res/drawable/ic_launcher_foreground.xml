@@ -3,15 +3,15 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-  <!-- Velimudr emblem: stylized "В" monogram + ring, on transparent bg -->
+  <!-- Velimudr: chat bubble + lightning, on transparent bg -->
   <group android:translateX="54" android:translateY="54">
+    <!-- speech bubble -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M -26,30 L -26,-28 L -10,-28 L -10,8 L 10,8 L 10,-28 L 26,-28 L 26,30 L 10,30 L 10,2 L -10,2 L -10,30 Z"/>
+        android:pathData="M -34,18 L 34,18 L 34,-22 L -34,-22 Z M -10,18 L -22,34 L -22,18 Z"/>
+    <!-- lightning bolt (brand purple) -->
     <path
-        android:strokeColor="#7C4DFF"
-        android:strokeWidth="3"
-        android:fillColor="#00000000"
-        android:pathData="M -46,0 A 46,46 0 1,0 46,0 A 46,46 0 1,0 -46,0 Z"/>
+        android:fillColor="#7C4DFF"
+        android:pathData="M 6,-16 L -10,4 L 0,4 L -6,18 L 14,-6 L 3,-6 Z"/>
   </group>
 </vector>
