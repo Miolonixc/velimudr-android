@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gap="12dp">
+        android:padding="4dp">
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnConnect"
             android:layout_width="0dp"

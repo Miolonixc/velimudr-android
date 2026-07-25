@@ -3,12 +3,15 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-  <!-- Velimudr emblem: stylized "В" monogram in a circle, on transparent bg -->
+  <!-- Velimudr emblem: stylized "В" monogram + ring, on transparent bg -->
   <group android:translateX="54" android:translateY="54">
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M -26,30 L -26,-28 L -10,-28 L -10,8 L 10,8 L 10,-28 L 26,-28 L 26,30 L 10,30 L 10,2 L -10,2 L -10,30 Z"/>
-    <circle android:cx="0" android:cy="0" android:r="46"
-        android:strokeColor="#7C4DFF" android:strokeWidth="3" android:fillColor="#00000000"/>
+    <path
+        android:strokeColor="#7C4DFF"
+        android:strokeWidth="3"
+        android:fillColor="#00000000"
+        android:pathData="M -46,0 A 46,46 0 1,0 46,0 A 46,46 0 1,0 -46,0 Z"/>
   </group>
 </vector>
