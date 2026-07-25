@@ -193,8 +193,9 @@ class MainActivity : AppCompatActivity() {
             try {
                 backend = GoBackend(applicationContext)
                 val config = Config.parse(BufferedReader(StringReader(conf)))
-                tunnel = WgTunnel("velimudr-tunnel")
-                backend!!.setState(tunnel!!, Tunnel.State.UP, config)
+                val t = WgTunnel("velimudr-tunnel")
+                tunnel = t
+                backend!!.setState(t, Tunnel.State.UP, config)
                 wgConnected = true
                 withContext(Dispatchers.Main) {
                     setHubBusy(false)
@@ -213,7 +214,8 @@ class MainActivity : AppCompatActivity() {
     private fun disconnectWg() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                tunnel?.let { backend?.setState(it, Tunnel.State.DOWN, null) }
+                val t = tunnel
+                if (t != null) backend?.setState(t, Tunnel.State.DOWN, null)
                 wgConnected = false
                 withContext(Dispatchers.Main) {
                     binding.dotConnected.visibility = android.view.View.GONE
