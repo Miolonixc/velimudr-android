@@ -18,12 +18,18 @@ import com.wireguard.android.backend.Tunnel
 import com.wireguard.config.Config
 import java.lang.Exception
 
+// Tunnel implementation required by WireGuard backend
+class WgTunnel(private val tunnelName: String) : Tunnel {
+    override fun getName(): String = tunnelName
+    override fun onStateChange(newState: Tunnel.State) {}
+}
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val client = OkHttpClient()
-    private var tunnel: Tunnel? = null
     private var backend: Backend? = null
+    private var tunnel: Tunnel? = null
 
     // LLM endpoint (inside WireGuard VPN)
     private val LLM_CHAT = "http://llm.srv.local/chat"
@@ -44,8 +50,17 @@ class MainActivity : AppCompatActivity() {
                 backend = GoBackend(applicationContext)
                 val confText = loadWgConfig()
                 val config = Config.parse(confText)
-                tunnel = backend!!.create("velimudr-tunnel", config)
-                backend!!.setState(tunnel!!, Tunnel.State.UP)
+                tunnel = WgTunnel("velimudr-tunnel")
+                // Request VPN permission if needed (Android requirement)
+                val prepareIntent = GoBackend.VpnService.prepare(this@MainActivity)
+                if (prepareIntent != null) {
+                    // Cannot start activity from background thread; show hint
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@MainActivity, "Нажми кнопку ещё раз для подтверждения VPN", Toast.LENGTH_LONG).show()
+                    }
+                    return@launch
+                }
+                backend!!.setState(tunnel!!, Tunnel.State.UP, config)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@MainActivity, "WG подключён ✅", Toast.LENGTH_SHORT).show()
                     binding.btnConnect.isEnabled = false
@@ -96,7 +111,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Minimal JSON string quoting (no external dep needed)
     private fun quote(s: String): String {
         val esc = s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
         return "\"$esc\""
@@ -104,6 +118,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        try { tunnel?.let { backend?.setState(it, Tunnel.State.DOWN) } } catch (_: Exception) {}
+        try { tunnel?.let { backend?.setState(it, Tunnel.State.DOWN, null) } } catch (_: Exception) {}
     }
 }
